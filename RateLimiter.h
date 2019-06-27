@@ -30,8 +30,6 @@ class RateLimiter {
   RateLimiter(int aWindowSize = WINDOW_SIZE);
 
   private:
-  // adds count to the current resource and returns count
-  virtual int addCount(const string &aResourceId);
   // get the current request count for the given resource
   // and optionally the previous update timestamp
   virtual int getCount(const string &aResourceId, time_t *aTime = NULL);

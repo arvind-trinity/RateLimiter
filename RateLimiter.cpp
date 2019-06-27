@@ -25,25 +25,10 @@ bool RateLimiter::addResourceLimit(const string &aResourceId, const int &aLimitP
   return true;
 }
 
+// core function that performs most of the task.
 bool RateLimiter::isRequestAllowed(const string &aResourceId) {
   bool ret = false;
-  int currCount = addCount(aResourceId);
-  int limit = getRateLimit(aResourceId);
-
-  if ((currCount >= 0) && (limit >= currCount)) {
-    ret = true;
-  }
-
-  cout << "curr Count for resource: " << aResourceId << " is " << currCount << endl;
-  DumpData();
-
-  return ret;
-}
-
-// core function that performs most of the task.
-int RateLimiter::addCount(const string &aResourceId) {
   time_t currTime = getCurrentTime();
-  int ret = -1;
 
   // get the limit record for the resource
   LimitDataMap::iterator itr = mLimitMap.end();
@@ -51,7 +36,6 @@ int RateLimiter::addCount(const string &aResourceId) {
     // check if we are within the current window
     ResourceLimitData &lData = itr->second;
     int timeDiff = currTime - lData.windowTimeStamp; 
-    cout << "time diff: " << timeDiff << endl;
 
     if (timeDiff >= mWindowSize) {
       // we are outside our current window so re-confiure the counts
@@ -75,17 +59,13 @@ int RateLimiter::addCount(const string &aResourceId) {
     // we are outside the limit? this will answer the question
     // should we allow 100 requests every minute irrespective
     // of how many requests are made
-    //if (getCount(aResourceId) < lData.limitPerWindowSize) {
+    if (getCount(aResourceId) < lData.limitPerWindowSize) {
+      ret = true;
       ++lData.currCount;
-    //}
-
-    // calculate the current count
-    // this is done my including the current count + scaled version
-    // of previous count
-    timeDiff = currTime - lData.windowTimeStamp;
-    ret = getCount(aResourceId);
+    }
   }
 
+  //DumpData();
   return ret;
 }
 
