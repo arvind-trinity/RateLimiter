@@ -12,8 +12,15 @@ The scope is to design and develop a simple rate limiter (POC) that can limit th
   
 ## Architecture Considerations:
   1. **Centralized Rate Limiter**:
-  2. **Local Rate Lmiter Service**:
-  3. **Client Server Arch**:
+    In this case Rate-Limiter runs on a separate instance to which webservers talk to to get request allowed/denied responses. The prefered mode of communication is http but we can implement a custom TCP based soulution that can remove HTTP overhead.
+    **Pros**:
+    **Cons**:
+  2. **Local Rate Lmiter Service with DB sync**:
+    In this case RateLimter runs as a local service in each of the DB server and are synced across via a central DB layer.
+    **Pros**:
+    **Cons**:
+  3. **Queues**:
+    This is again a variation of option 4 of the design where individual requests to the ratelimiter service are queued and responded in order. This could lead to potential bottle necks and is relatively hard to implement, so considered out of scope for this POC.
   
 ## Design Details:
 
