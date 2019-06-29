@@ -20,7 +20,11 @@ bool RateLimiter::addResourceLimit(const string &aResourceId, const int &aLimitP
   lData.limitPerWindowSize = aLimitPerWindowSize;
   lData.currCount = 0;
   lData.prevCount = 0;
+  lData.windowTimeStamp = 0;
   mLimitMap[aResourceId] = lData;
+
+  // add to data store
+  updateResourceLimitDataToStore(aResourceId);
 
   return true;
 }
@@ -29,6 +33,7 @@ bool RateLimiter::addResourceLimit(const string &aResourceId, const int &aLimitP
 bool RateLimiter::isRequestAllowed(const string &aResourceId) {
   bool ret = false;
   time_t currTime = getCurrentTime();
+  bool isSyncNeeded = false;
 
   // get the limit record for the resource
   LimitDataMap::iterator itr = mLimitMap.end();
@@ -53,6 +58,7 @@ bool RateLimiter::isRequestAllowed(const string &aResourceId) {
       // timestamp
       lData.windowTimeStamp = currTime;
       lData.currCount = 0;
+      isSyncNeeded = true;
     }
 
     // TODO: check if the count should be increased even 
@@ -62,7 +68,15 @@ bool RateLimiter::isRequestAllowed(const string &aResourceId) {
     if (getCount(aResourceId) < lData.limitPerWindowSize) {
       ret = true;
       ++lData.currCount;
+      if (!isSyncNeeded) {
+        // just increment the count
+        mDataStore.incRequestCount(aResourceId);
+      }
     }
+  }
+
+  if (isSyncNeeded) {
+    updateResourceLimitDataToStore(aResourceId);
   }
 
   //DumpData();
@@ -92,6 +106,52 @@ int RateLimiter::getRateLimit(const string &aResourceId) {
   LimitDataMap::iterator itr = mLimitMap.end();
   if ((itr = mLimitMap.find(aResourceId)) != mLimitMap.end()) {
     ret = itr->second.limitPerWindowSize;
+  }
+
+  return ret;
+}
+
+bool RateLimiter::updateResourceLimitDataFromStore(const string &aResourceId) {
+  bool ret = false;
+  strKVMap map = mDataStore.getLimitData(aResourceId);
+  ResourceLimitData data;
+
+  // check if we already have limit data in-memory for this 
+  // resource
+  if (mLimitMap.find(aResourceId) != mLimitMap.end()) {
+    ResourceLimitData data = mLimitMap[aResourceId];
+    ret = true;
+    // TODO: check if the data is in data store if not
+    // add it
+  }
+
+  // add/update the in-memory limit data
+  for (strKVMap::iterator i; i != map.end(); i++) {
+    data.windowTimeStamp = stoi(map["windowTimeStamp"]);
+    data.currCount = stoi(map["currCount"]);
+    data.prevCount = stoi(map["prevCount"]);
+    data.limitPerWindowSize = stoi(map["limitPerWindowSize"]);
+    mLimitMap[aResourceId] = data;
+  }
+
+  return ret;
+}
+
+bool RateLimiter::updateResourceLimitDataToStore(const string &aResourceId) {
+  bool ret = false;
+  ResourceLimitData data;
+  LimitDataMap::iterator itr;
+
+  if ((itr = mLimitMap.find(aResourceId)) != mLimitMap.end()) {
+    data = itr->second;
+    // add to data store
+    strKVMap map = { 
+      {"windowTimeStamp", to_string(data.windowTimeStamp)},
+      {"currCount", to_string(data.currCount)},
+      {"prevCount", to_string(data.prevCount)},
+      {"limitPerWindowSize", to_string(data.limitPerWindowSize)} 
+    };
+    mDataStore.addLimitData(aResourceId, map);
   }
 
   return ret;

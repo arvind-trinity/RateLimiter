@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <time.h>
 
+#include "DataStoreHandler.h"
+
 using namespace std;
 
 #define WINDOW_SIZE 60 // secs
@@ -31,8 +33,12 @@ class RateLimiter {
 
   private:
   // get the current request count for the given resource
-  // and optionally the previous update timestamp
-  virtual int getCount(const string &aResourceId, time_t *aTime = NULL);
+  // and optionally the previous updated timestamp
+  int getCount(const string &aResourceId, time_t *aTime = NULL);
+  // sync resource limit data in-memory from store
+  bool updateResourceLimitDataFromStore(const string &aResourceId);
+  // sync resource limit data in store with in-memory data
+  bool updateResourceLimitDataToStore(const string &aResourceId);
   // interface to get current time used by all members
   time_t getCurrentTime();
   // data dumper for debugging
@@ -41,6 +47,7 @@ class RateLimiter {
   // member data
   LimitDataMap mLimitMap; // map to store resorce vs limit data
   int mWindowSize; // configurable window size
+  DataStoreHandler mDataStore; // handles storage requests
 };
 
 #endif
