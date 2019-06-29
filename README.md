@@ -69,13 +69,74 @@ The scope is to design and develop a simple rate limiter (POC) that can limit th
 ## Compile and Run:
   The solution needs a simple redis C library called [Hiredis](https://github.com/redis/hiredis), please download and install before compiling the source.
   ```
-  make test
+  make test_func
   ```
-  should run some basic tests and check connections
+  should run some basic tests and check connections. Sample success output:
   ```
-  make run_test
+  #### Testing Data Store Handler ####
+  PING: PONG
+  Data store connection test: PASSED
+  Data store addLimitData test: PASSED
+  Data store getLimitData test: PASSED
+  Data store incRequestCount test: PASSED
+  Data store decRequestCount test: PASSED
+  #### Testing RateLimiter ####
+  Running a 10 sec load with load of 1 rps, window: 5 and allowed rate: 2/window
+  rateLimit for css: 2
+  elapsed secs: 1 total Requests: 1 allowed Requests: 1
+  elapsed secs: 2 total Requests: 2 allowed Requests: 2
+  elapsed secs: 3 total Requests: 3 allowed Requests: 2
+  elapsed secs: 4 total Requests: 4 allowed Requests: 2
+  elapsed secs: 5 total Requests: 5 allowed Requests: 2
+  elapsed secs: 6 total Requests: 6 allowed Requests: 3
+  elapsed secs: 7 total Requests: 7 allowed Requests: 3
+  elapsed secs: 8 total Requests: 8 allowed Requests: 4
+  elapsed secs: 9 total Requests: 9 allowed Requests: 4
+  elapsed secs: 10 total Requests: 10 allowed Requests: 4
   ```
-  should run a 5 mins test enforcing 100 requests/minute with a load of 10 requests/sec
+  
+  ```
+  make test_load
+  ```
+  should run a 5 mins test enforcing 100 requests/minute with a load of 10 requests/sec. Sample success output:
+  ```
+  Running a 5 mins load, with load of 10 rps, window size: 60 secs and rate limit of 100 per min
+  Press any key to continue... 
+  . . .
+  rateLimit for css: 100
+  elapsed secs: 1 total Requests: 1 allowed Requests: 1
+  elapsed secs: 2 total Requests: 2 allowed Requests: 2
+  elapsed secs: 2 total Requests: 3 allowed Requests: 3
+  elapsed secs: 2 total Requests: 4 allowed Requests: 4
+  elapsed secs: 2 total Requests: 5 allowed Requests: 5
+  elapsed secs: 2 total Requests: 6 allowed Requests: 6
+  elapsed secs: 2 total Requests: 7 allowed Requests: 7
+  elapsed secs: 2 total Requests: 8 allowed Requests: 8
+  elapsed secs: 2 total Requests: 9 allowed Requests: 9
+  elapsed secs: 2 total Requests: 10 allowed Requests: 10
+  . . .
+  elapsed secs: 298 total Requests: 2970 allowed Requests: 497
+  elapsed secs: 299 total Requests: 2971 allowed Requests: 498
+  elapsed secs: 299 total Requests: 2972 allowed Requests: 499
+  elapsed secs: 299 total Requests: 2973 allowed Requests: 499
+  elapsed secs: 299 total Requests: 2974 allowed Requests: 499
+  elapsed secs: 299 total Requests: 2975 allowed Requests: 499
+  elapsed secs: 299 total Requests: 2976 allowed Requests: 499
+  elapsed secs: 299 total Requests: 2977 allowed Requests: 499
+  elapsed secs: 299 total Requests: 2978 allowed Requests: 499
+  elapsed secs: 299 total Requests: 2979 allowed Requests: 499
+  elapsed secs: 299 total Requests: 2980 allowed Requests: 499
+  elapsed secs: 300 total Requests: 2981 allowed Requests: 500
+  elapsed secs: 300 total Requests: 2982 allowed Requests: 500
+  elapsed secs: 300 total Requests: 2983 allowed Requests: 500
+  elapsed secs: 300 total Requests: 2984 allowed Requests: 500
+  elapsed secs: 300 total Requests: 2985 allowed Requests: 500
+  elapsed secs: 300 total Requests: 2986 allowed Requests: 500
+  elapsed secs: 300 total Requests: 2987 allowed Requests: 500
+  elapsed secs: 300 total Requests: 2988 allowed Requests: 500
+  elapsed secs: 300 total Requests: 2989 allowed Requests: 500
+  elapsed secs: 300 total Requests: 2990 allowed Requests: 500
+  ```
 
 ## Future Improvements:
   * Use event driven solution to handle different request and DB sync-up asynchronously.
