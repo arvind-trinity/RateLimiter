@@ -84,8 +84,8 @@ DataStoreHandler::getLimitData(const string &aResourceId) {
     if (reply->type == REDIS_REPLY_ARRAY) {
       for (int i = 0; i < reply->elements; i = i + 2) {
         ret[reply->element[i]->str] = reply->element[i + 1]->str;
-        cout << "key: " << reply->element[i]->str;
-        cout << " val: " << reply->element[i + 1]->str << endl;
+        //cout << "key: " << reply->element[i]->str;
+        //cout << " val: " << reply->element[i + 1]->str << endl;
       }
     } else {
       cout << "redis reply data type invalid" << endl;
@@ -95,14 +95,29 @@ DataStoreHandler::getLimitData(const string &aResourceId) {
   return ret;
 }
 
-void DataStoreHandler::testConnection() {
-  cout << "Testing connection to store" << endl;
+bool DataStoreHandler::testConnection() {
+	bool ret = false;
 
   if (mContext) {
     redisReply *reply;
     reply = (redisReply*) redisCommand(mContext, "PING");
-    cout << "PING: " << reply->str << endl;
+    if (reply->type != REDIS_REPLY_ERROR) {
+			cout << "PING: " << reply->str << endl;
+			ret = true;
+		} else {
+			cout << "Connection to Redis faild" << endl;
+		}
     freeReplyObject(reply);
   }
+	return ret;
+}
+
+void DataStoreHandler::DumpData(strKVMap &map) {
+	strKVMap::iterator i = map.begin();
+	while (i != map.end()) {
+		cout << "key: " << i->first;
+		cout << " val: " << i->second << endl;
+		i++;
+	}
 }
 

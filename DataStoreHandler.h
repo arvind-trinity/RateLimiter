@@ -23,11 +23,12 @@ class DataStoreHandler {
   virtual bool addLimitData(const string &aResourceId, const strKVMap &aKVMap);
   // gets limit data for the given resource id
   virtual strKVMap getLimitData(const string &aResourceId);
+	// TODO: delete the limit data
+	//virtual bool delLimitData(const string &aResourceId);
   // function to test data store connection
-  void testConnection();
-  // gets a dump of data limits from data store
-  // can be used to sync local data with the data store
-  //virtual ResourceLimitData getLimitsData();
+  bool testConnection();
+	// dump the given strKVMap
+  virtual void DumpData(strKVMap &map);
 
   private:
   redisContext *mContext;

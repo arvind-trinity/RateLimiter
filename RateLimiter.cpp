@@ -61,7 +61,7 @@ bool RateLimiter::isRequestAllowed(const string &aResourceId) {
       isSyncNeeded = true;
     }
 
-    // TODO: check if the count should be increased even 
+    // TODO: check if the count should be increased even when
     // we are outside the limit? this will answer the question
     // should we allow 100 requests every minute irrespective
     // of how many requests are made
