@@ -48,7 +48,7 @@ The scope is to design and develop a simple rate limiter (POC) that can limit th
   30 + 60 * (60 - 30) / 60 = 60
   ```
   5. Each time a new request comes to the web-server a query is made with the resourceId to the rate-limiter to determine whether the request is allowed or not, reate limiter responds yes/no based on the current rate. As part of responding this to this query rate-limiter does some book keeping. It checks whether the current bucket window has expired in which case it creates a new bucket and updates the old bucket to a scaled down version of the the current bucket as needed.
-  6. Multiple rate-limiters running on different boxes (on the application node or as a separate node) syncs to each other through a Redis DB layer.
+  6. Multiple rate-limiters running on different boxes (on the application node or as a separate node) syncs to each other through a **Redis** DB layer.
   7. The service throttles responses i.e. for any given request rate the service allows no more than the allowed limit. For example for a resource of limit 100 rpm and a request rate of 1000 rpm the service only allows ~100 requests to pass through. This is done by counting only the allowed requests.
   For example after an one hour run with a rate limit of 100 rpm and a rate of 10 rps we get the following stats:
   ```
@@ -63,8 +63,8 @@ The scope is to design and develop a simple rate limiter (POC) that can limit th
 ### TODO:
   * Add Architecture and design diagrams to README.
   * Multi-threading or event driven implementaion.
-  * Local/remote synchronization.
   * Local/network interface to the service.
+  * Multi threaded and multi-process testing.
 
 ## Compile and Run:
   The solution needs a simple redis C library called [Hiredis](https://github.com/redis/hiredis), please download and install before compiling the source.
