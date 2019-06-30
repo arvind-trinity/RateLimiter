@@ -46,10 +46,12 @@ int main() {
 	cout << "with load of 1 rps, window: 5 and ";
 	cout << "allowed rate: 2/window" << endl;
 
-	RateLimiter rl(LIMIT_WINDOW);
+	RateLimiter *rateLimiter = RateLimiter::make(LIMIT_WINDOW);
+	RateLimiter &rl = *rateLimiter;
 	rl.addResourceLimit(string(resourceId), COUNT_PER_WINDOW);
 
-	cout << "rateLimit for css: " << rl.getRateLimit(resourceId) << endl;
+	cout << "rateLimit for " << resourceId;
+	cout << ": " << rl.getRateLimit(resourceId) << endl;
 
 	int totalCount = 0;
 	time_t startTime = time(NULL);
@@ -63,8 +65,12 @@ int main() {
 		cout << "elapsed secs: " << time(NULL) - startTime + 1;
 		cout << " total Requests: " << totalCount;
 		cout << " allowed Requests: " << allowedCount << endl;
+		//rl.DumpData();
+		//dh.DumpData(resourceId);
+		
 		usleep(1000000 / RATE_PER_SEC);
 	}
+	RateLimiter::destroy(rateLimiter);
 
 	return 0;
 }

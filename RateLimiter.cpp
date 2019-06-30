@@ -4,7 +4,33 @@
 
 using namespace std;
 
+RateLimiter* RateLimiter::mInstance = NULL;
+
+RateLimiter* RateLimiter::make(int aWindowSize) {
+	if (!mInstance) {
+		mInstance = new RateLimiter(aWindowSize);
+	}
+	return mInstance;
+}
+
+void RateLimiter::destroy(RateLimiter *aRateLimiter) {
+	if (aRateLimiter) {
+		delete aRateLimiter;
+	}
+}
+
 RateLimiter::RateLimiter(int aWindowSize) : mWindowSize(aWindowSize) {}
+
+RateLimiter::~RateLimiter() {
+	LimitDataMap::iterator i;
+
+	for (i = mLimitMap.begin(); i != mLimitMap.end(); i++) {
+		if (i->second.lock) {
+			delete i->second.lock;
+			i->second.lock = NULL;
+		}
+	}
+}
 
 bool RateLimiter::addResourceLimit(const string &aResourceId, const int &aLimitPerWindowSize) {
   // check if the resource is already rate limited
@@ -17,6 +43,7 @@ bool RateLimiter::addResourceLimit(const string &aResourceId, const int &aLimitP
 
   // create a new entry in limit data map
   ResourceLimitData lData;
+	lData.lock = new mutex;
   lData.limitPerWindowSize = aLimitPerWindowSize;
   lData.currCount = 0;
   lData.prevCount = 0;
@@ -30,20 +57,47 @@ bool RateLimiter::addResourceLimit(const string &aResourceId, const int &aLimitP
 }
 
 // core function that performs most of the task.
+// acquire lock before modifying resource specific limits data
+// sync to or from data store only needed:
+// 1. when the current window rolls over
+// 2. when the in-memory data point to allowing the request.
+// 3. when the requested resource's limit data is not in memory
 bool RateLimiter::isRequestAllowed(const string &aResourceId) {
   bool ret = false;
   time_t currTime = getCurrentTime();
-  bool isSyncNeeded = false;
+  bool isNeedSyncFromStore = true;
+	bool isNeedSyncToStore = false;
+  LimitDataMap::iterator itr = mLimitMap.end();
 
   // get the limit record for the resource
-  LimitDataMap::iterator itr = mLimitMap.end();
+  if ((itr = mLimitMap.find(aResourceId)) != mLimitMap.end()) {
+		// if data not in-memory load from data-store and try again
+		updateResourceLimitDataFromStore(aResourceId);
+		// NOTE: newly loaded data so no need to sync again
+		// even if the data in store changes in the meantime
+		// we are processing this request we will sync up the next time
+		isNeedSyncFromStore = false; 
+	}
+
   if ((itr = mLimitMap.find(aResourceId)) != mLimitMap.end()) {
     // check if we are within the current window
     ResourceLimitData &lData = itr->second;
+		lData.lock->lock();
+		//time_t currWindowTimeStamp = lData.windowTimeStamp;
     int timeDiff = currTime - lData.windowTimeStamp; 
 
     if (timeDiff >= mWindowSize) {
-      // we are outside our current window so re-confiure the counts
+      // we are outside our current window, sync and check again
+			if (isNeedSyncFromStore) {
+				lData.lock->unlock();
+				updateResourceLimitDataFromStore(aResourceId);
+				isNeedSyncFromStore = false;
+				lData.lock->lock();
+			}
+		}
+
+    if (timeDiff >= mWindowSize) {
+      // we are still outside our current window, so re-confiure the counts
       if (timeDiff > (2 * mWindowSize)) {
         // count is currCount for a bucket older than 2 times
         // window time so discard it
@@ -58,7 +112,7 @@ bool RateLimiter::isRequestAllowed(const string &aResourceId) {
       // timestamp
       lData.windowTimeStamp = currTime;
       lData.currCount = 0;
-      isSyncNeeded = true;
+			isNeedSyncToStore = true;
     }
 
     // TODO: check if the count should be increased even when
@@ -66,16 +120,30 @@ bool RateLimiter::isRequestAllowed(const string &aResourceId) {
     // should we allow 100 requests every minute irrespective
     // of how many requests are made
     if (getCount(aResourceId) < lData.limitPerWindowSize) {
-      ret = true;
+			if (isNeedSyncFromStore) {
+				lData.lock->unlock();
+				updateResourceLimitDataFromStore(aResourceId);
+				isNeedSyncFromStore = false;
+				lData.lock->lock();
+			}
+		}
+
+    if (getCount(aResourceId) < lData.limitPerWindowSize) {
       ++lData.currCount;
-      if (!isSyncNeeded) {
+			lData.lock->unlock();
+      if (!isNeedSyncToStore) {
         // just increment the count
         mDataStore.incRequestCount(aResourceId);
       }
+      ret = true;
     }
-  }
+  } else {
+		// resource not in memory or in data-store,
+		// so raise an alert and allow the request
+		cout << "resource not configured, id: " << aResourceId << endl;
+	}
 
-  if (isSyncNeeded) {
+  if (isNeedSyncToStore) {
     updateResourceLimitDataToStore(aResourceId);
   }
 
@@ -114,7 +182,7 @@ int RateLimiter::getRateLimit(const string &aResourceId) {
 bool RateLimiter::updateResourceLimitDataFromStore(const string &aResourceId) {
   bool ret = false;
   strKVMap map = mDataStore.getLimitData(aResourceId);
-  ResourceLimitData data;
+  ResourceLimitData data = {0,0,0,0,0};
 
   // check if we already have limit data in-memory for this 
   // resource
@@ -123,15 +191,19 @@ bool RateLimiter::updateResourceLimitDataFromStore(const string &aResourceId) {
     ret = true;
     // TODO: check if the data is in data store if not
     // add it
-  }
+  } else {
+		data.lock = new mutex;
+	}
 
   // add/update the in-memory limit data
   for (strKVMap::iterator i; i != map.end(); i++) {
+		data.lock->lock();
     data.windowTimeStamp = stoi(map["windowTimeStamp"]);
     data.currCount = stoi(map["currCount"]);
     data.prevCount = stoi(map["prevCount"]);
     data.limitPerWindowSize = stoi(map["limitPerWindowSize"]);
     mLimitMap[aResourceId] = data;
+		data.lock->unlock();
   }
 
   return ret;

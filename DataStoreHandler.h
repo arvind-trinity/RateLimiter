@@ -28,7 +28,7 @@ class DataStoreHandler {
   // function to test data store connection
   bool testConnection();
 	// dump the given strKVMap
-  virtual void DumpData(strKVMap &map);
+  virtual void DumpData(const string &aResourceId);
 
   private:
   redisContext *mContext;

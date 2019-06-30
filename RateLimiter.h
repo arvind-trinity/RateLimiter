@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <time.h>
+#include <mutex>
 
 #include "DataStoreHandler.h"
 
@@ -12,6 +13,7 @@ using namespace std;
 #define WINDOW_SIZE 60 // secs
 
 struct ResourceLimitData {
+	mutex *lock;
   time_t windowTimeStamp;
   int currCount;
   int prevCount;
@@ -22,16 +24,24 @@ typedef unordered_map<string, ResourceLimitData> LimitDataMap;
 
 class RateLimiter {
   public:
+	// creator method for singlton class
+	static RateLimiter* make(int aWindowSize = WINDOW_SIZE);
+	// destroy
+	static void destroy(RateLimiter *aRateLimiter);
   // public interface to register a resource for rate limiting
   virtual bool addResourceLimit(const string &aResourceId, const int &aLimitPerMinute);
   // public interface to check if rate limit kicked in for the current resource
   virtual bool isRequestAllowed(const string &aResourceId);
   // public interface to get ratelimit applied for the given resource
   virtual int getRateLimit(const string &aResourceId);
-  // contructor
-  RateLimiter(int aWindowSize = WINDOW_SIZE);
+  // data dumper for debugging
+  void DumpData();
 
   private:
+  // contructor
+  RateLimiter(int aWindowSize = WINDOW_SIZE);
+	//desctuctor
+	~RateLimiter();
   // get the current request count for the given resource
   // and optionally the previous updated timestamp
   int getCount(const string &aResourceId, time_t *aTime = NULL);
@@ -41,13 +51,12 @@ class RateLimiter {
   bool updateResourceLimitDataToStore(const string &aResourceId);
   // interface to get current time used by all members
   time_t getCurrentTime();
-  // data dumper for debugging
-  void DumpData();
 
   // member data
   LimitDataMap mLimitMap; // map to store resorce vs limit data
   int mWindowSize; // configurable window size
   DataStoreHandler mDataStore; // handles storage requests
+	static RateLimiter *mInstance;
 };
 
 #endif

@@ -71,8 +71,8 @@ bool DataStoreHandler::addLimitData(const string &aResourceId, const strKVMap &a
   return ret;
 }
 
-unordered_map<string, string> 
-DataStoreHandler::getLimitData(const string &aResourceId) {
+
+strKVMap DataStoreHandler::getLimitData(const string &aResourceId) {
   unordered_map<string, string> ret;
 
   if (mContext) {
@@ -112,7 +112,8 @@ bool DataStoreHandler::testConnection() {
 	return ret;
 }
 
-void DataStoreHandler::DumpData(strKVMap &map) {
+void DataStoreHandler::DumpData(const string &aResourceId) {
+	strKVMap map = getLimitData(aResourceId);
 	strKVMap::iterator i = map.begin();
 	while (i != map.end()) {
 		cout << "key: " << i->first;

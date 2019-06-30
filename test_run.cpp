@@ -17,17 +17,20 @@ int main() {
 	cout << "Press any key to continue..." << endl;
 	cin.get();
 
-  RateLimiter rl(LIMIT_WINDOW);
+	RateLimiter *rateLimiter = RateLimiter::make(LIMIT_WINDOW);
+  RateLimiter &rl = *rateLimiter;
   DataStoreHandler dh;
-  rl.addResourceLimit(string("css"), COUNT_PER_WINDOW);
+	string resourceId = "cooking.com";
+  rl.addResourceLimit(resourceId, COUNT_PER_WINDOW);
 
-  cout << "rateLimit for css: " << rl.getRateLimit("css") << endl;
+  cout << "rateLimit for " << resourceId;
+	cout << ": " << rl.getRateLimit(resourceId) << endl;
 
   int totalCount = 0;
   time_t startTime = time(NULL);
   int allowedCount = 0;
   while ((startTime + RUN_TIME_IN_SECS) > time(NULL)) {
-    if (rl.isRequestAllowed("css")) {
+    if (rl.isRequestAllowed(resourceId)) {
       ++allowedCount;
     }
     ++totalCount;
@@ -35,9 +38,10 @@ int main() {
     cout << "elapsed secs: " << time(NULL) - startTime + 1;
     cout << " total Requests: " << totalCount;
 		cout << " allowed Requests: " << allowedCount << endl;
-    dh.getLimitData("css");
+    dh.DumpData(resourceId);
     usleep(1000000 / RATE_PER_SEC);
   }
+	RateLimiter::destroy(rateLimiter);
 
   return 0;
 }
