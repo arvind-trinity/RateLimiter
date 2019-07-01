@@ -36,9 +36,14 @@ The scope is to design and develop a simple rate limiter (POC) that can limit th
   
 ## Design Details:
   As mentioned earlier option 3, **Sliding window with aggregate data points** design is used for this POC. 
+  The solution has 3 main interfaces:
+  1. ConnectionHandler (yet to be implemented) - Event driven or multi-threaded interface to handle incoming requests.
+  2. RateLimiter - Implements the core rate-limiting functionality. Responsible for maintaining current traffic pattern and limit details per resource and responds with true/false when queried if rate limit needs to be applied for a particular resource.
+  3. DataStoreHandler - Handles reads/writes to data-store for cross node synchronization.
+  
   1. Rate limit window i.e. per minute or per 10 secs etc., have to mentioned while RateLimiter object is created and stays constant for that instance.
   2. Each resource can be given individual limits say one can have a limit of 100 rpm while other can have 60 rpm.
-  3. For each resource we maintain 2 buckets of each limit-window size (say 60 secs). Current count is added to the current bucket and is rolled over after 60 secs. Whether 60 secs has passed or not is calculated by storing the current window timestamp.
+  3. For each resource we maintain 2 buckets of each limit-window size (say 60 secs). Current count is added to the current bucket and is rolled over after limit-window size secs. Whether 60 secs has passed or not is calculated by storing the current window timestamp.
   4. At any given point current rate is determined by the current count and a scaled version of the previous count. For example, we are in the 30th second of the current window, current count is 30 and previous count is 60, so the current rate is:
   ```
   current_count + prev_count * (window_size - current_window_size) / window_size
@@ -47,23 +52,24 @@ The scope is to design and develop a simple rate limiter (POC) that can limit th
   ```
   30 + 60 * (60 - 30) / 60 = 60
   ```
-  5. Each time a new request comes to the web-server a query is made with the resourceId to the rate-limiter to determine whether the request is allowed or not, reate limiter responds yes/no based on the current rate. As part of responding this to this query rate-limiter does some book keeping. It checks whether the current bucket window has expired in which case it creates a new bucket and updates the old bucket to a scaled down version of the the current bucket as needed.
+  5. Each time a new request comes to the web-server a query is made with the resourceId to the rate-limiter to determine whether the request is allowed or not, reate limiter responds yes/no based on the current rate. As part of responding to this query rate-limiter does some book keeping. It checks whether the current bucket window has expired, in which case it creates a new bucket and updates the previuos bucket to a scaled down version of the the current bucket as needed.
   6. Multiple rate-limiters running on different boxes (on the application node or as a separate node) syncs to each other through a **Redis** DB layer.
-  7. The service throttles responses i.e. for any given request rate the service allows no more than the allowed limit. For example for a resource of limit 100 rpm and a request rate of 1000 rpm the service only allows ~100 requests to pass through. This is done by counting only the allowed requests.
+  7. The service throttles responses i.e. for any given request rate the service allows no more than the allowed limit. For example for a resource of limit 100 rpm and a request rate of 1000 rpm the service only allows ~100 requests to pass through over a floating minute window. This is done by counting only the allowed requests.
   For example after an one hour run with a rate limit of 100 rpm and a rate of 10 rps we get the following stats:
   ```
   elapsed secs: 3600 total requests: 35869 allowed requests: 6002
+  Datastore values:
   key: limitPerWindowSize val: 100
   key: prevCount val: 100
   key: currCount val: 2
   key: windowTimeStamp val: 1561764043
   ```
-  8. **Optimization**: As we are doing point 7 we can reduce the number of DB queries in a distributed environment by making a query only when the in-memory limiter thinks the request has to be allowed, otherwise we don't have to sync because we are not going to change the count or allow the request. We have to sync when we change time-window as well. This optimization will potentially reduce the service to DB traffic significantly and will be in order of limit per window rather than total requests.
+  8. **Optimization**: As we are doing point 7 we can reduce the number of DB queries in a distributed environment by making a query only when the in-memory limiter thinks the request has to be allowed, otherwise we don't have to sync because we are not going to change the count or allow the request anyways. We have to sync when we change time-window as well. This optimization will potentially reduce the service to DB traffic significantly and will be in **order of limit per window per resource** rather than total requests per resource.
   
 ### TODO:
+  * Local/network interface to the service.
   * Add Architecture and design diagrams to README.
   * Multi-threading or event driven implementaion.
-  * Local/network interface to the service.
   * Multi threaded and multi-process testing.
 
 ## Compile and Run:
@@ -139,7 +145,7 @@ The scope is to design and develop a simple rate limiter (POC) that can limit th
   ```
 
 ## Future Improvements:
-  * Use event driven solution to handle different request and DB sync-up asynchronously.
+  * Use event driven solution to handle different request and to syn with DB asynchronously.
   * Adopt better communication techniques for communication between the application server and the rate-limiter like [zero MQ](http://zeromq.org/) or shared memory.
   * Better DB sync techniques via message queue or Redis queue.
     
