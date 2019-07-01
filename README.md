@@ -41,6 +41,7 @@ The scope is to design and develop a simple rate limiter (POC) that can limit th
   2. RateLimiter - Implements the core rate-limiting functionality. Responsible for maintaining current traffic pattern and limit details per resource and responds with true/false when queried if rate limit needs to be applied for a particular resource.
   3. DataStoreHandler - Handles reads/writes to data-store for cross node synchronization.
   
+  ### Operation:
   1. Rate limit window i.e. per minute or per 10 secs etc., have to mentioned while RateLimiter object is created and stays constant for that instance.
   2. Each resource can be given individual limits say one can have a limit of 100 rpm while other can have 60 rpm.
   3. For each resource we maintain 2 buckets of each limit-window size (say 60 secs). Current count is added to the current bucket and is rolled over after limit-window size secs. Whether 60 secs has passed or not is calculated by storing the current window timestamp.
