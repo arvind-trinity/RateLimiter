@@ -13,9 +13,10 @@ RateLimiter* RateLimiter::make(int aWindowSize) {
 	return mInstance;
 }
 
-void RateLimiter::destroy(RateLimiter *aRateLimiter) {
-	if (aRateLimiter) {
-		delete aRateLimiter;
+void RateLimiter::destroy() {
+	if (mInstance) {
+		delete mInstance;
+		mInstance = NULL;
 	}
 }
 

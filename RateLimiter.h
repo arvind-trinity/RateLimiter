@@ -27,7 +27,7 @@ class RateLimiter {
 	// creator method for singlton class
 	static RateLimiter* make(int aWindowSize = WINDOW_SIZE);
 	// destroy
-	static void destroy(RateLimiter *aRateLimiter);
+	static void destroy();
   // public interface to register a resource for rate limiting
   virtual bool addResourceLimit(const string &aResourceId, const int &aLimitPerMinute);
   // public interface to check if rate limit kicked in for the current resource

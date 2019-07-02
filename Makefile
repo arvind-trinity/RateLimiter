@@ -5,9 +5,9 @@ LDLIBS=-lhiredis
 APP_TEST=test
 APP_TEST_RUN=test_run
 
-${APP_TEST}: test.o RateLimiter.o DataStoreHandler.o
+${APP_TEST}: test.o RateLimiter.o DataStoreHandler.o ConnectionHandler.o
 
-${APP_TEST_RUN}: test_run.o RateLimiter.o DataStoreHandler.o
+${APP_TEST_RUN}: test_run.o RateLimiter.o DataStoreHandler.o ConnectionHandler.o
 
 test_run.o: test_run.cpp
 
@@ -16,6 +16,8 @@ test.o: test.cpp
 RateLimiter.o: RateLimiter.cpp RateLimiter.h
 
 DataStoreHandler.o: DataStoreHandler.cpp DataStoreHandler.h
+
+ConnectionHandler.o: ConnectionHandler.cpp ConnectionHandler.h
 
 test_func: ${APP_TEST}
 	./test

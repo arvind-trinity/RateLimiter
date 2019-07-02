@@ -38,10 +38,10 @@ int main() {
     cout << "elapsed secs: " << time(NULL) - startTime + 1;
     cout << " total Requests: " << totalCount;
 		cout << " allowed Requests: " << allowedCount << endl;
-    dh.DumpData(resourceId);
+    //dh.DumpData(resourceId);
     usleep(1000000 / RATE_PER_SEC);
   }
-	RateLimiter::destroy(rateLimiter);
+	RateLimiter::destroy();
 
   return 0;
 }
