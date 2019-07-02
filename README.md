@@ -70,7 +70,7 @@ The scope is to design and develop a simple rate limiter (POC) that can limit th
   8. **Optimization**: As we are doing point 7 we can reduce the number of DB queries in a distributed environment by making a query only when the in-memory limiter thinks the request has to be allowed, otherwise we don't have to sync because we are not going to change the count or allow the request anyways. We have to sync when we change time-window as well. This optimization will potentially reduce the service to DB traffic significantly and will be in **order of limit per window per resource** rather than total requests per resource.
   
 ### Database:
-  Redis is used as database layer for used for syncing between multiple instances of Rate Limiter. Data stored has the following structure:
+  Redis is used as database layer for syncing between multiple instances of Rate Limiter running on different nodes. Data stored has the following structure:
   ```
   127.0.0.1:6379> hgetall cooking.com
   1) "currCount"
